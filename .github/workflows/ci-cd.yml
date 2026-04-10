@@ -1,175 +1,38 @@
-name: Python API CI/CD Pipeline
+name: Simple Python CI
 
 on:
   push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        python-version: [ '3.8', '3.9', '3.10', '3.11' ]
-    
+
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python ${{ matrix.python-version }}
+    # Step 1: Get your code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 2: Install Python
+    - name: Setup Python
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Cache pip packages
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
-    - name: Install dependencies
+        python-version: '3.10'
+
+    # Step 3: Install dependencies
+    - name: Install packages
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    
-    - name: Lint with flake8
+
+    # Step 4: Check code errors
+    - name: Lint check
       run: |
         pip install flake8
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      continue-on-error: true
-    
-    - name: Run tests with pytest
-      run: |
-        pytest test_api_project.py -v --cov=api_project --cov-report=xml --cov-report=html --cov-report=term
-    
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-        fail_ci_if_error: false
-      continue-on-error: true
-    
-    - name: Generate coverage badge
-      run: |
-        pip install coverage-badge
-        coverage-badge -o coverage.svg -f
-      continue-on-error: true
-    
-    - name: Archive test results
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: test-results-${{ matrix.python-version }}
-        path: htmlcov/
-      continue-on-error: true
+        flake8 .
 
-  code-quality:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-    
-    - name: Install dependencies
+    # Step 5: Run tests
+    - name: Run tests
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pylint black isort
-    
-    - name: Check code formatting with black
-      run: black --check . || true
-      continue-on-error: true
-    
-    - name: Check import sorting with isort
-      run: isort --check-only . || true
-      continue-on-error: true
-    
-    - name: Analyze with pylint
-      run: pylint api_project.py --fail-under=7.0 || true
-      continue-on-error: true
-
-  security-scan:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install bandit safety
-    
-    - name: Run Bandit security scan
-      run: bandit -r . -f json -o bandit-report.json || true
-      continue-on-error: true
-    
-    - name: Check dependencies with Safety
-      run: safety check --json || true
-      continue-on-error: true
-    
-    - name: Upload security reports
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: security-reports
-        path: bandit-report.json
-      continue-on-error: true
-
-  build-docker:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-    
-    - name: Build Docker image
-      run: docker build -t api-app:${{ github.sha }} .
-    
-    - name: Test Docker image
-      run: |
-        docker run --rm api-app:${{ github.sha }} python -m pytest test_api_project.py -v || true
-      continue-on-error: true
-    
-    - name: Upload Docker build logs
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: docker-build-logs
-        path: docker-build.log
-      continue-on-error: true
-
-  notify:
-    needs: [ test, code-quality ]
-    runs-on: ubuntu-latest
-    if: always()
-    
-    steps:
-    - name: Check test results
-      run: |
-        if [ "${{ needs.test.result }}" == "failure" ]; then
-          echo "❌ Tests failed!"
-          exit 1
-        else
-          echo "✅ All tests passed!"
-        fi
+        pip install pytest
+        pytest test_api_project.py
