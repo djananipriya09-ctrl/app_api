@@ -35,7 +35,9 @@ def create_user():
     cursor.close()
     conn.close()
 
-    return jsonify({"id": user_id, "name": data.get("name"), "age": data.get("age")}), 201
+    response = {"id": user_id, "name": data.get("name"),
+                "age": data.get("age")}
+    return jsonify(response), 201
 
 
 # READ ALL
