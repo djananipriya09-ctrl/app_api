@@ -18,3 +18,4 @@ EXPOSE 5000
 
 # Run the Flask application
 CMD ["python", "api_project.py"]
+
