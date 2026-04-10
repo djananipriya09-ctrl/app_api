@@ -15,9 +15,6 @@ def get_db_connection():
     )
 
 
-print("Database connection function defined successfully.")
-
-
 # CREATE
 @app.route('/users', methods=['POST'])
 def create_user():
