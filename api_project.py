@@ -14,6 +14,8 @@ def get_db_connection():
         port=3306
     )
 
+print("Database connection function defined successfully.")
+
 
 # CREATE
 @app.route('/users', methods=['POST'])
