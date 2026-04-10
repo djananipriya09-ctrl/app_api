@@ -151,15 +151,16 @@ GitHub Actions will automatically run tests on push!
 - ✅ `Dockerfile` - Container deployment (OPTIONAL but recommended)
 
 ### Documentation Files
-- ✅ `README_TESTING.md` - This file
-- ✅ `TESTING.md` - Additional testing docs
-- ✅ `SETUP_INSTRUCTIONS.md` - GitHub Actions setup guide
+- ✅ `README_TESTING.md` - Comprehensive documentation (this file)
 
 ### Removed Unnecessary Files
 - ✅ `.pytest_cache/` - Cleaned up
 - ✅ `__pycache__/` - Cleaned up
 - ✅ `.coverage` - Coverage cache removed
 - ✅ `.venv-1/` - Old virtual environment removed
+- ✅ `TESTING.md` - Consolidated into README_TESTING.md
+- ✅ `SETUP_INSTRUCTIONS.md` - Consolidated into README_TESTING.md
+- ✅ `run-tests.sh` & `run-tests.bat` - Commands documented in README_TESTING.md
 
 ---
 
@@ -190,24 +191,22 @@ python -m flake8 api_project.py test_api_project.py -v
 
 ---
 
-## 📁 Project Structure
+## 📁 Final Project Structure
 
 ```
 app_api/
-├── api_project.py                 # Your main API code
-├── test_api_project.py            # ✅ 15 comprehensive tests
-├── requirements.txt               # ✅ Updated dependencies
-├── pytest.ini                     # Test configuration
-├── Dockerfile                     # Docker image definition
+├── api_project.py                 # Flask REST API (core application)
+├── test_api_project.py            # ✅ 20+ comprehensive unit tests
+├── requirements.txt               # Project dependencies
+├── pytest.ini                     # Pytest configuration
+├── Dockerfile                     # Docker container config
+├── README_TESTING.md              # This file (complete guide)
 │
 ├── .github/
 │   └── workflows/
-│       └── ci-cd.yml             # ✅ GitHub Actions pipeline
+│       └── ci-cd.yml              # GitHub Actions CI/CD pipeline
 │
-├── TESTING.md                     # Testing documentation
-├── SETUP_INSTRUCTIONS.md          # GitHub setup guide
-├── run-tests.sh                   # Linux/macOS test runner
-└── run-tests.bat                  # Windows test runner
+└── .venv/                         # Virtual environment (local)
 ```
 
 ---
@@ -226,25 +225,13 @@ app_api/
 │  GitHub Actions Triggered       │
 └────────┬────────────────────────┘
          │
-         ├─→ Test Job (Python 3.8-3.11)
+         ├─→ Test Job (Python 3.10)
          │   ├─ Install Dependencies
-         │   ├─ Run 15 Tests ✓
-         │   ├─ Generate Coverage ✓
-         │   └─ Upload to Codecov
+         │   ├─ Run 20+ Tests ✓
+         │   └─ Lint with flake8
          │
-         ├─→ Code Quality Job
-         │   ├─ Flake8 Linting
-         │   ├─ Pylint Analysis
-         │   ├─ Black Formatting
-         │   └─ Isort Import Check
-         │
-         ├─→ Security Scan Job
-         │   ├─ Bandit Security Scan
-         │   └─ Safety Check
-         │
-         └─→ Docker Build (Main only)
-             ├─ Build Image
-             └─ Run Container Tests
+         └─→ Test Results in Actions Tab
+             └─ Pass/Fail Status
 ```
 
 ---
