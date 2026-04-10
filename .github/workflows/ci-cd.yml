@@ -35,4 +35,4 @@ jobs:
     - name: Run tests
       run: |
         pip install pytest
-        pytest test_api_project.py
+        pytest test_api_project.py     
