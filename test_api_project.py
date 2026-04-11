@@ -3,6 +3,8 @@ import os
 import unittest
 from unittest.mock import patch, MagicMock
 import json
+import jwt
+from datetime import datetime, timedelta
 
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(__file__))
@@ -18,6 +20,22 @@ class TestUserAPI(unittest.TestCase):
         self.app = app
         self.app.config['TESTING'] = True
         self.client = self.app.test_client()
+        
+        # Generate valid JWT token for testing
+        self.valid_token = jwt.encode(
+            {
+                'username': 'admin',
+                'exp': datetime.utcnow() + timedelta(hours=24)
+            },
+            self.app.config['SECRET_KEY'],
+            algorithm='HS256'
+        )
+        
+        # Headers with valid token
+        self.headers_with_token = {
+            'Authorization': f'Bearer {self.valid_token}',
+            'Content-Type': 'application/json'
+        }
 
     @patch('api_project.get_db_connection')
     def test_create_user_success(self, mock_db):
@@ -30,11 +48,11 @@ class TestUserAPI(unittest.TestCase):
         mock_conn.cursor.return_value = mock_cursor
         mock_db.return_value = mock_conn
 
-        # Make request
+        # Make request with JWT token
         response = self.client.post(
             '/users',
             data=json.dumps({'name': 'John Doe', 'age': 30}),
-            content_type='application/json'
+            headers=self.headers_with_token
         )
 
         # Assert response
@@ -56,11 +74,11 @@ class TestUserAPI(unittest.TestCase):
         mock_conn.cursor.return_value = mock_cursor
         mock_db.return_value = mock_conn
 
-        # Make request with incomplete data
+        # Make request with incomplete data and JWT token
         response = self.client.post(
             '/users',
             data=json.dumps({'name': 'Jane Doe'}),
-            content_type='application/json'
+            headers=self.headers_with_token
         )
 
         # Should still process with None for age
@@ -82,8 +100,8 @@ class TestUserAPI(unittest.TestCase):
         mock_conn.cursor.return_value = mock_cursor
         mock_db.return_value = mock_conn
 
-        # Make request
-        response = self.client.get('/users')
+        # Make request with JWT token
+        response = self.client.get('/users', headers=self.headers_with_token)
 
         # Assert response
         self.assertEqual(response.status_code, 200)
@@ -101,8 +119,8 @@ class TestUserAPI(unittest.TestCase):
         mock_conn.cursor.return_value = mock_cursor
         mock_db.return_value = mock_conn
 
-        # Make request
-        response = self.client.get('/users')
+        # Make request with JWT token
+        response = self.client.get('/users', headers=self.headers_with_token)
 
         # Assert response
         self.assertEqual(response.status_code, 200)
@@ -120,8 +138,8 @@ class TestUserAPI(unittest.TestCase):
         mock_conn.cursor.return_value = mock_cursor
         mock_db.return_value = mock_conn
 
-        # Make request
-        response = self.client.get('/users/1')
+        # Make request with JWT token
+        response = self.client.get('/users/1', headers=self.headers_with_token)
 
         # Assert response
         self.assertEqual(response.status_code, 200)
@@ -139,8 +157,8 @@ class TestUserAPI(unittest.TestCase):
         mock_conn.cursor.return_value = mock_cursor
         mock_db.return_value = mock_conn
 
-        # Make request
-        response = self.client.get('/users/999')
+        # Make request with JWT token
+        response = self.client.get('/users/999', headers=self.headers_with_token)
 
         # Assert response
         self.assertEqual(response.status_code, 404)
@@ -156,11 +174,11 @@ class TestUserAPI(unittest.TestCase):
         mock_conn.cursor.return_value = mock_cursor
         mock_db.return_value = mock_conn
 
-        # Make request
+        # Make request with JWT token
         response = self.client.put(
             '/users/1',
             data=json.dumps({'name': 'Jane Smith', 'age': 32}),
-            content_type='application/json'
+            headers=self.headers_with_token
         )
 
         # Assert response
@@ -181,11 +199,11 @@ class TestUserAPI(unittest.TestCase):
         mock_conn.cursor.return_value = mock_cursor
         mock_db.return_value = mock_conn
 
-        # Make request
+        # Make request with JWT token
         response = self.client.put(
             '/users/999',
-            data=json.dumps({'name': 'Jane Smith', 'age': 32}),
-            content_type='application/json'
+            data=json.dumps({'name': 'Ghost User', 'age': 25}),
+            headers=self.headers_with_token
         )
 
         # Assert response
@@ -202,8 +220,8 @@ class TestUserAPI(unittest.TestCase):
         mock_conn.cursor.return_value = mock_cursor
         mock_db.return_value = mock_conn
 
-        # Make request
-        response = self.client.delete('/users/1')
+        # Make request with JWT token
+        response = self.client.delete('/users/1', headers=self.headers_with_token)
 
         # Assert response
         self.assertEqual(response.status_code, 200)
@@ -223,8 +241,8 @@ class TestUserAPI(unittest.TestCase):
         mock_conn.cursor.return_value = mock_cursor
         mock_db.return_value = mock_conn
 
-        # Make request
-        response = self.client.delete('/users/999')
+        # Make request with JWT token
+        response = self.client.delete('/users/999', headers=self.headers_with_token)
 
         # Assert response
         self.assertEqual(response.status_code, 404)
@@ -241,7 +259,10 @@ class TestUserAPI(unittest.TestCase):
 
         # POST to /users is actually correct, test a wrong method instead
         response = self.client.patch(
-            '/users', data='{}', content_type='application/json')
+            '/users', 
+            data=json.dumps({}),
+            headers=self.headers_with_token
+        )
 
         # PATCH method should not be allowed
         self.assertEqual(response.status_code, 405)
@@ -250,6 +271,69 @@ class TestUserAPI(unittest.TestCase):
         """Test that the app is properly initialized"""
         self.assertTrue(self.app is not None)
         self.assertTrue(self.app.config['TESTING'])
+
+    def test_login_success(self):
+        """Test successful login returns JWT token"""
+        response = self.client.post(
+            '/login',
+            data=json.dumps({'username': 'admin', 'password': 'admin123'}),
+            content_type='application/json'
+        )
+
+        # Assert response
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('token', response.json)
+        self.assertEqual(response.json['message'], 'Login successful')
+
+    def test_login_invalid_credentials(self):
+        """Test login with invalid credentials"""
+        response = self.client.post(
+            '/login',
+            data=json.dumps({'username': 'admin', 'password': 'wrongpass'}),
+            content_type='application/json'
+        )
+
+        # Assert response
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json['error'], 'Invalid credentials')
+
+    def test_login_missing_credentials(self):
+        """Test login with missing credentials"""
+        response = self.client.post(
+            '/login',
+            data=json.dumps({'username': 'admin'}),
+            content_type='application/json'
+        )
+
+        # Assert response
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json['error'], 'Username and password required')
+
+    def test_protected_endpoint_without_token(self):
+        """Test accessing protected endpoint without token"""
+        response = self.client.get('/users')
+
+        # Assert response
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json['error'], 'Token is missing')
+
+    def test_protected_endpoint_with_invalid_token(self):
+        """Test accessing protected endpoint with invalid token"""
+        headers = {'Authorization': 'Bearer invalid_token_here'}
+        response = self.client.get('/users', headers=headers)
+
+        # Assert response
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json['error'], 'Invalid token')
+
+    def test_protected_endpoint_with_invalid_token_format(self):
+        """Test accessing protected endpoint with malformed token header"""
+        headers = {'Authorization': 'NoBearer'}
+        response = self.client.get('/users', headers=headers)
+
+        # Assert response
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json['error'], 'Invalid token format')
 
 
 class TestAPIEdgeCases(unittest.TestCase):
@@ -260,6 +344,22 @@ class TestAPIEdgeCases(unittest.TestCase):
         self.app = app
         self.app.config['TESTING'] = True
         self.client = self.app.test_client()
+        
+        # Generate valid JWT token for testing
+        self.valid_token = jwt.encode(
+            {
+                'username': 'admin',
+                'exp': datetime.utcnow() + timedelta(hours=24)
+            },
+            self.app.config['SECRET_KEY'],
+            algorithm='HS256'
+        )
+        
+        # Headers with valid token
+        self.headers_with_token = {
+            'Authorization': f'Bearer {self.valid_token}',
+            'Content-Type': 'application/json'
+        }
 
     @patch('api_project.get_db_connection')
     def test_create_user_with_special_characters(self, mock_db):
@@ -274,7 +374,7 @@ class TestAPIEdgeCases(unittest.TestCase):
         response = self.client.post(
             '/users',
             data=json.dumps({'name': "O'Brien", 'age': 30}),
-            content_type='application/json'
+            headers=self.headers_with_token
         )
 
         self.assertEqual(response.status_code, 201)
@@ -292,19 +392,20 @@ class TestAPIEdgeCases(unittest.TestCase):
 
         response = self.client.post(
             '/users',
-            data=json.dumps({'name': 'John', 'age': -5}),
-            content_type='application/json'
+            data=json.dumps({'name': 'John Doe', 'age': -5}),
+            headers=self.headers_with_token
         )
 
-        # API doesn't validate, so it should still process
+        # API doesn't validate age, so this should succeed
         self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json['age'], -5)
 
     @patch('api_project.get_db_connection')
     def test_get_user_with_invalid_id_format(self, mock_db):
         """Test getting user with non-integer ID"""
-        response = self.client.get('/users/abc')
+        response = self.client.get('/users/invalid_id', headers=self.headers_with_token)
 
-        # Should return 404 because URL doesn't match pattern
+        # Flask should return 404 for invalid ID format
         self.assertEqual(response.status_code, 404)
 
 
