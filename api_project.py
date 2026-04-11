@@ -5,7 +5,7 @@ from functools import wraps
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key_change_this_in_production'  # ⚠️ Change in production
+app.config['SECRET_KEY'] = 'your_secret_key_change_this_in_production'
 
 
 # 🔹 DB Connection
@@ -31,7 +31,7 @@ def token_required(f):
         try:
             # Extract token from "Bearer <token>"
             token = token.split(" ")[1]
-            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+            jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
         except IndexError:
             return jsonify({"error": "Invalid token format"}), 401
         except jwt.ExpiredSignatureError:
