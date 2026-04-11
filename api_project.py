@@ -1,7 +1,11 @@
 from flask import Flask, request, jsonify
 import mysql.connector
+import jwt
+from functools import wraps
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key_change_this_in_production'  # ⚠️ Change in production
 
 
 # 🔹 DB Connection
@@ -15,8 +19,58 @@ def get_db_connection():
     )
 
 
+# 🔹 JWT Token Verification Decorator
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('Authorization')
+
+        if not token:
+            return jsonify({"error": "Token is missing"}), 401
+
+        try:
+            # Extract token from "Bearer <token>"
+            token = token.split(" ")[1]
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        except IndexError:
+            return jsonify({"error": "Invalid token format"}), 401
+        except jwt.ExpiredSignatureError:
+            return jsonify({"error": "Token has expired"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"error": "Invalid token"}), 401
+
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+# 🔹 LOGIN - Generate JWT Token
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+
+    if not data or not data.get("username") or not data.get("password"):
+        return jsonify({"error": "Username and password required"}), 400
+
+    # ⚠️ In production, verify credentials against database
+    # For demo: simple credential check
+    if data.get("username") == "admin" and data.get("password") == "admin123":
+        token = jwt.encode(
+            {
+                'username': data.get("username"),
+                'exp': datetime.utcnow() + timedelta(hours=24)
+            },
+            app.config['SECRET_KEY'],
+            algorithm='HS256'
+        )
+        return jsonify({"token": token, "message": "Login successful"}), 200
+
+    return jsonify({"error": "Invalid credentials"}), 401
+
+
 # CREATE
 @app.route('/users', methods=['POST'])
+@token_required
 def create_user():
     data = request.get_json()
 
@@ -42,6 +96,7 @@ def create_user():
 
 # READ ALL
 @app.route('/users', methods=['GET'])
+@token_required
 def get_users():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -56,6 +111,7 @@ def get_users():
 
 
 # READ ONE
+@token_required
 @app.route('/users/<int:user_id>', methods=['GET'])
 def get_user(user_id):
     conn = get_db_connection()
@@ -74,6 +130,7 @@ def get_user(user_id):
 
 
 # UPDATE
+@token_required
 @app.route('/users/<int:user_id>', methods=['PUT'])
 def update_user(user_id):
     data = request.get_json()
@@ -98,6 +155,7 @@ def update_user(user_id):
     return jsonify({"message": "User updated"})
 
 
+@token_required
 # DELETE
 @app.route('/users/<int:user_id>', methods=['DELETE'])
 def delete_user(user_id):
