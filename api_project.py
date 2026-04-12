@@ -10,7 +10,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your_secret_key_change_this_in_production')
+app.config['SECRET_KEY'] = os.getenv(
+    'SECRET_KEY', 'your_secret_key_change_this_in_production'
+)
 
 
 # 🔹 DB Connection - AWS RDS with SSL

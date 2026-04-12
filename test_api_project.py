@@ -474,7 +474,8 @@ class TestHealthCheck(unittest.TestCase):
         """Test that health check endpoint doesn't require authentication"""
         # This test doesn't mock the connection, it just verifies
         # that the endpoint is accessible without a token
-        # (it will fail to connect in test environment, but should reach the endpoint)
+        # (it will fail to connect in test environment, but should
+        # reach the endpoint)
         with patch('api_project.get_db_connection') as mock_db:
             mock_cursor = MagicMock()
             mock_conn = MagicMock()
