@@ -10,8 +10,8 @@ env:
   DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
   DOCKER_HUB_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
   AWS_REGION: eu-north-1
-  ECS_CLUSTER_NAME: app-cluster
-  ECS_SERVICE_NAME: app-service
+  ECS_CLUSTER_NAME: lohit_cluster
+  ECS_SERVICE_NAME: api-service
   ECS_TASK_DEFINITION: app-task
 
 jobs:
@@ -117,7 +117,7 @@ jobs:
     - name: Build, Tag, and Push Image to Amazon ECR
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: app-api
+        ECR_REPOSITORY: janani/myapp
         IMAGE_TAG: ${{ github.sha }}
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
