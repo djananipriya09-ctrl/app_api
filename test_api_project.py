@@ -424,5 +424,68 @@ class TestAPIEdgeCases(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
 
 
+class TestHealthCheck(unittest.TestCase):
+    """Test suite for health check endpoint"""
+
+    def setUp(self):
+        """Set up test client"""
+        self.app = app
+        self.app.config['TESTING'] = True
+        self.client = self.app.test_client()
+
+    @patch('api_project.get_db_connection')
+    def test_health_check_success(self, mock_db):
+        """Test health check when database is healthy"""
+        mock_cursor = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value = mock_cursor
+        mock_db.return_value = mock_conn
+
+        # Make request to health endpoint (no auth required)
+        response = self.client.get('/health')
+
+        # Assert response
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['status'], 'healthy')
+        self.assertEqual(response.json['service'], 'User API')
+        self.assertIn('timestamp', response.json)
+
+        # Assert database was checked
+        mock_cursor.execute.assert_called_once_with("SELECT 1")
+        mock_cursor.close.assert_called_once()
+        mock_conn.close.assert_called_once()
+
+    @patch('api_project.get_db_connection')
+    def test_health_check_unhealthy(self, mock_db):
+        """Test health check when database is unhealthy"""
+        # Mock database connection to raise an exception
+        mock_db.side_effect = Exception("Database connection failed")
+
+        # Make request to health endpoint
+        response = self.client.get('/health')
+
+        # Assert response
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json['status'], 'unhealthy')
+        self.assertEqual(response.json['service'], 'User API')
+        self.assertIn('error', response.json)
+
+    def test_health_check_no_authentication_required(self):
+        """Test that health check endpoint doesn't require authentication"""
+        # This test doesn't mock the connection, it just verifies
+        # that the endpoint is accessible without a token
+        # (it will fail to connect in test environment, but should reach the endpoint)
+        with patch('api_project.get_db_connection') as mock_db:
+            mock_cursor = MagicMock()
+            mock_conn = MagicMock()
+            mock_conn.cursor.return_value = mock_cursor
+            mock_db.return_value = mock_conn
+
+            response = self.client.get('/health')
+
+            # Should succeed without any Authorization header
+            self.assertIn(response.status_code, [200, 503])
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -3,20 +3,35 @@ import mysql.connector
 import jwt
 from functools import wraps
 from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key_change_this_in_production'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your_secret_key_change_this_in_production')
 
 
-# 🔹 DB Connection
+# 🔹 DB Connection - AWS RDS with SSL
 def get_db_connection():
-    return mysql.connector.connect(
-        host="host.docker.internal",  # Access host machine from container
-        user="root",
-        password="Lohit@12$",
-        database="users",
-        port=3306
-    )
+    db_config = {
+        'host': os.getenv('DB_HOST', 'host.docker.internal'),
+        'user': os.getenv('DB_USER', 'root'),
+        'password': os.getenv('DB_PASSWORD', 'Lohit@12$'),
+        'database': os.getenv('DB_NAME', 'users'),
+        'port': int(os.getenv('DB_PORT', 3306))
+    }
+
+    # Add SSL configuration if certificate is provided
+    ssl_ca = os.getenv('DB_SSL_CA')
+    if ssl_ca:
+        db_config['ssl_disabled'] = False
+        db_config['ssl_verify_cert'] = True
+        db_config['ssl_verify_identity'] = True
+        db_config['ssl_ca'] = ssl_ca
+
+    return mysql.connector.connect(**db_config)
 
 
 # 🔹 JWT Token Verification Decorator
@@ -42,6 +57,38 @@ def token_required(f):
         return f(*args, **kwargs)
 
     return decorated
+
+
+# 🔹 HEALTH CHECK - For AWS Load Balancer
+@app.route('/health', methods=['GET'])
+def health_check():
+    """
+    Health check endpoint for AWS Load Balancer.
+    Returns the health status of the instance.
+    No authentication required.
+    """
+    try:
+        # Try to connect to the database to verify it's healthy
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1")
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat(),
+            "service": "User API"
+        }), 200
+
+    except Exception as e:
+        # If database connection fails, return unhealthy
+        return jsonify({
+            "status": "unhealthy",
+            "timestamp": datetime.utcnow().isoformat(),
+            "service": "User API",
+            "error": str(e)
+        }), 503
 
 
 # 🔹 LOGIN - Generate JWT Token
