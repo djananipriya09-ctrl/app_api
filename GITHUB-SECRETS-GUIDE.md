@@ -127,7 +127,7 @@ https://github.com/janani/app_api
 
 3. **Secret field:** Paste your AWS Access Key ID
    ```
-   Example: AKIA2HMQF7UORUR7WUR6
+   Example: AKIA... (your actual access key from AWS)
    ```
 
 4. Click **Add secret** button
@@ -156,7 +156,7 @@ https://github.com/janani/app_api
 
 3. **Secret field:** Paste your AWS Secret Access Key
    ```
-   Example: G9M2RTTzC2Qsa/Uf2sRVZhoekauV6bbOhnBP7lvY
+   Example: (long string from AWS IAM - keep it secret!)
    ```
 
 4. Click **Add secret** button
@@ -202,7 +202,7 @@ https://github.com/janani/app_api
 
 3. **Secret field:** Your Docker Hub access token
    ```
-   Example: dckr_pat_xyz123...
+   Example: dckr_pat_xxxxxxxxxxx (from Docker Hub Security)
    ```
 
 4. Click **Add secret** button
@@ -291,8 +291,8 @@ Two values appear:
 
 **Example:**
 ```
-Access Key ID: AKIA2HMQF7UORUR7WUR6
-Secret Access Key: G9M2RTTzC2Qsa/Uf2sRVZhoekauV6bbOhnBP7lvY
+Access Key ID: AKIA... (your actual access key)
+Secret Access Key: ***secret*** (your actual secret key)
 ```
 
 ### Docker Hub Credentials
@@ -318,8 +318,8 @@ Two values appear:
 
 **Example:**
 ```
-Username: janani
-Token: dckr_pat_1234567890abcdef
+Username: your_docker_username
+Token: dckr_pat_xxxxxxxxxxx (your actual token)
 ```
 
 ---
